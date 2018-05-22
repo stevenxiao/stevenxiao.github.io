@@ -230,3 +230,85 @@ pipeline{
 
 `stage`之间是可以并行运行的，但是有一些需要注意的地方，一个`stage`只可以包含一个`steps`或者`parallel`。
 
+另外，可以通过设置`failFast`为`true`使得在一个`stage`失败的时候，让整个`parallel`都终止运行。例如：
+
+```groovy
+pipeline {
+    agent any
+    stages {
+        stage("Non parallel stage") {
+            steps {
+                echo "this stage will be execute first"
+            }
+        }
+        
+        stage("Parallel stage"){
+            when {
+                branch "master"
+            }
+            failFash true 				//有一个stage fail了就会终止
+            parallel { 					//stage A 和 B会并行运行
+                stage("A"){
+                    agent {  			//指定运行的节点
+                        label "For A"
+                    }
+                    steps{
+                        echo "A"
+                    }
+                }
+                stage("B"){
+                    agent {
+                        label "For B"
+                    }
+                    steps{
+                        echo "B"
+                    }
+                }
+            }
+        }
+    }
+}
+```
+
+## Jenkinsfile 之 Steps
+
+`Steps`描述了`Pipeline`中需要执行任务的步骤，它支持的项目非常庞杂，有兴趣的可以[参考文档](https://jenkins.io/doc/pipeline/steps)，一下只简单的介绍几个。
+
+### script
+
+`script`包含了一段脚本，可以用来在`Pipline`执行的时候做一些工作，例如：
+
+```groovy
+pipeline {
+    agent any
+    stages {
+        stage("Example"){
+            steps {
+                script {
+                    def browser = ['chrome', 'firefox']
+                    for(int i = 0; i < browser.size(); ++i){
+                        echo "Test on ${browser[i]}"
+                    }
+                }
+            }
+        }
+    }
+}
+```
+
+## Jenkinsfile 之 脚本化的Pipeline
+
+脚本化的`pipeline`跟描述性的`pipeline`类似，都是构建在`Pipeline`子系统上的，但是它是一种更通用的`Groovy DSL`，可以使用很多的`Groovy`的功能。比如`flow control`：
+
+```groovy
+...
+    stage("Example"){
+        if(env.BRANCH_NAME == 'master'){ //通过全局环境变量来获取分支名称
+            echo 'only execute on master'
+        }else{
+            echo 'all other branch'
+        }
+    }
+...
+```
+
